@@ -12,6 +12,7 @@ import org.springframework.web.filter.CorsFilter;
 /**
  * CorsConfig – allows the React frontend (localhost:3000)
  * to call the Spring Boot REST API (localhost:8080).
+ * Covers /api/** and other controller base paths (cart, payment, delivery).
  */
 @Configuration
 public class CorsConfig {
@@ -26,8 +27,11 @@ public class CorsConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);
+        source.registerCorsConfiguration("/shopping-cart/**", config);
+        source.registerCorsConfiguration("/payment-details/**", config);
+        source.registerCorsConfiguration("/delivery/**", config);
+        source.registerCorsConfiguration("/uploads/**", config);
 
         return new CorsFilter(source);
     }
 }
-

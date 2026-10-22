@@ -1,11 +1,11 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: '', // proxy handles /api -> localhost:8080
+    baseURL: '',
     headers: { 'Content-Type': 'application/json' },
 });
 
-// ── Products ──────────────────────────────────────────────────
+// Products
 export const getProducts = (params = {}) =>
     api.get('/api/products', { params }).then(r => r.data);
 
@@ -15,7 +15,6 @@ export const getProduct = (id) =>
 export const getInStockProducts = () =>
     api.get('/api/products/in-stock').then(r => r.data);
 
-// ── Products: admin (create / update / delete / picture upload) ──
 export const createProduct = (data) =>
     api.post('/api/products', data).then(r => r.data);
 
@@ -33,7 +32,7 @@ export const uploadProductImage = (file) => {
         .then(r => r.data);
 };
 
-// ── Cart (stored in the database, identified by a browser cartId) ─
+// Cart
 export const getCart = (cartId) =>
     api.get(`/shopping-cart/${cartId}`).then(r => r.data);
 
@@ -49,7 +48,7 @@ export const removeCartItem = (cartId, productId) =>
 export const clearCartItems = (cartId) =>
     api.delete(`/shopping-cart/${cartId}`).then(r => r.data);
 
-// ── Customers ─────────────────────────────────────────────────
+// Customers
 export const registerCustomer = (data) =>
     api.post('/api/customers', data).then(r => r.data);
 
@@ -62,9 +61,12 @@ export const getCustomer = (id) =>
 export const updateCustomer = (id, data) =>
     api.put(`/api/customers/${id}`, data).then(r => r.data);
 
-// ── Orders ────────────────────────────────────────────────────
+// Orders
 export const placeOrder = (payload) =>
     api.post('/api/orders', payload).then(r => r.data);
+
+export const getOrders = (params = {}) =>
+    api.get('/api/orders', { params }).then(r => r.data);
 
 export const getOrdersByCustomer = (customerId) =>
     api.get(`/api/orders/customer/${customerId}`).then(r => r.data);
@@ -75,14 +77,23 @@ export const getOrder = (id) =>
 export const cancelOrder = (id) =>
     api.post(`/api/orders/${id}/cancel`).then(r => r.data);
 
-// ── Ratings ───────────────────────────────────────────────────
+export const updateOrderStatus = (id, status) =>
+    api.patch(`/api/orders/${id}/status`, { status }).then(r => r.data);
+
+// Ratings
 export const createRating = (rating) =>
     api.post('/api/ratings', rating).then(r => r.data);
 
 export const getRatings = () =>
     api.get('/api/ratings').then(r => r.data);
 
-// ── Login / Registration (simple) ─────────────────────────────
+// Shipping & payment
+export const createShippingAddress = (address) =>
+    api.post('/api/shipping-addresses', address).then(r => r.data);
+
+export const createPaymentDetails = (payment) =>
+    api.post('/payment-details/create', payment).then(r => r.data);
+
 export const createLogin = (login) =>
     api.post('/api/logins', login).then(r => r.data);
 

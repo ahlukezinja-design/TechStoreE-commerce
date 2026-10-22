@@ -33,10 +33,10 @@ export default function Footer() {
                     <div>
                         <h4 className="mb-3 text-sm font-semibold uppercase tracking-wider text-white">Support</h4>
                         <ul className="space-y-2 text-sm">
-                            <li><a href="#" className="hover:text-accent-400 transition">Help Centre</a></li>
-                            <li><a href="#" className="hover:text-accent-400 transition">Shipping Info</a></li>
-                            <li><a href="#" className="hover:text-accent-400 transition">Returns</a></li>
-                            <li><a href="#" className="hover:text-accent-400 transition">Contact Us</a></li>
+                            <li><Link to="/help" className="hover:text-accent-400 transition">Help Centre</Link></li>
+                            <li><Link to="/shipping" className="hover:text-accent-400 transition">Shipping Info</Link></li>
+                            <li><Link to="/returns" className="hover:text-accent-400 transition">Returns</Link></li>
+                            <li><Link to="/contact" className="hover:text-accent-400 transition">Contact Us</Link></li>
                         </ul>
                     </div>
 

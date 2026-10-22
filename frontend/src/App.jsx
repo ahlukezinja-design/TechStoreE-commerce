@@ -10,6 +10,11 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Orders from './pages/Orders';
 import Admin from './pages/Admin';
+import Login from './pages/Login';
+import HelpCentre from './pages/HelpCentre';
+import ShippingInfo from './pages/ShippingInfo';
+import Returns from './pages/Returns';
+import Contact from './pages/Contact';
 
 export default function App() {
     return (
@@ -26,7 +31,12 @@ export default function App() {
                                 <Route path="/cart" element={<Cart />} />
                                 <Route path="/checkout" element={<Checkout />} />
                                 <Route path="/orders" element={<Orders />} />
+                                <Route path="/login" element={<Login />} />
                                 <Route path="/admin" element={<Admin />} />
+                                <Route path="/help" element={<HelpCentre />} />
+                                <Route path="/shipping" element={<ShippingInfo />} />
+                                <Route path="/returns" element={<Returns />} />
+                                <Route path="/contact" element={<Contact />} />
                             </Routes>
                         </main>
                         <Footer />

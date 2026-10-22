@@ -1,6 +1,5 @@
 package za.ac.cput.factory;
 
-
 import za.ac.cput.domain.ShippingAddress;
 
 public class ShippingAddressFactory {
@@ -9,7 +8,7 @@ public class ShippingAddressFactory {
             String addressLine1,
             String addressLine2,
             String city,
-            String state,
+            String province,
             String zipcode,
             String country) {
 
@@ -17,7 +16,7 @@ public class ShippingAddressFactory {
                 addressLine1,
                 addressLine2,
                 city,
-                state,
+                province,
                 zipcode,
                 country
         );

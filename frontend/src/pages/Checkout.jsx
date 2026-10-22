@@ -2,7 +2,14 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { placeOrder, registerCustomer, updateCustomer, getCustomerByEmail } from '../services/api';
+import {
+    placeOrder,
+    registerCustomer,
+    updateCustomer,
+    getCustomerByEmail,
+    createShippingAddress,
+    createPaymentDetails,
+} from '../services/api';
 
 function formatPrice(price) {
     return new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' }).format(Number(price));
@@ -18,6 +25,10 @@ export default function Checkout() {
         email: user?.email || '',
         phone: user?.phone || '',
         address: user?.address || '',
+        city: '',
+        province: '',
+        zipcode: '',
+        paymentMethod: 'Cash on Delivery',
     });
     const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
     const [loading, setLoading] = useState(false);
@@ -46,6 +57,9 @@ export default function Checkout() {
                     Order #{success.id} has been created successfully.
                 </p>
                 <p className="mt-1 text-sm text-slate-400">Total: {formatPrice(success.totalAmount)}</p>
+                {success.paymentMethod && (
+                    <p className="mt-1 text-sm text-slate-400">Payment: {success.paymentMethod}</p>
+                )}
                 <div className="mt-8 flex justify-center gap-3">
                     <Link to="/orders" className="btn-primary">View orders</Link>
                     <Link to="/products" className="btn-secondary">Continue shopping</Link>
@@ -71,7 +85,7 @@ export default function Checkout() {
             let customer;
             try {
                 const existing = await getCustomerByEmail(details.email);
-                customer = await updateCustomer(existing.id, details); // keep details up to date
+                customer = await updateCustomer(existing.id, details);
             } catch (err) {
                 if (err.response?.status === 404) {
                     customer = await registerCustomer(details);
@@ -80,7 +94,21 @@ export default function Checkout() {
                 }
             }
 
-            // 2. Place the order (saved in orders + order_items, stock is reduced)
+            // 2. Save structured shipping address (shipping_address table) via REST
+            try {
+                await createShippingAddress({
+                    addressLine1: details.address,
+                    addressLine2: '',
+                    city: form.city.trim() || 'N/A',
+                    province: form.province.trim() || 'N/A',
+                    zipcode: form.zipcode.trim() || '0000',
+                    country: 'South Africa',
+                });
+            } catch (shipErr) {
+                console.warn('Shipping address save failed (order still proceeds):', shipErr);
+            }
+
+            // 3. Place the order (orders + order_items)
             const order = await placeOrder({
                 customerId: customer.id,
                 shippingAddress: details.address,
@@ -88,9 +116,21 @@ export default function Checkout() {
                 quantities: items.map((i) => i.quantity),
             });
 
-            login(customer); // remember this customer so "Orders" can show their orders
+            // 4. Save payment details (payment_details table) via REST — not real card processing
+            const paymentMethod = form.paymentMethod || 'Cash on Delivery';
+            try {
+                await createPaymentDetails({
+                    paymentId: `PAY-${order.id}-${Date.now()}`,
+                    paymentMethod,
+                    transactionId: `TXN-ORDER-${order.id}`,
+                });
+            } catch (payErr) {
+                console.warn('Payment details save failed (order still proceeds):', payErr);
+            }
+
+            login(customer);
             clearCart();
-            setSuccess(order);
+            setSuccess({ ...order, paymentMethod });
         } catch (err) {
             console.error(err);
             const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to place order';
@@ -114,15 +154,38 @@ export default function Checkout() {
                             <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="Email" className="input-field" required />
                             <input name="phone" value={form.phone} onChange={handleChange} placeholder="Phone (optional)" className="input-field" />
                         </div>
+                    </div>
+
+                    <div className="card p-6">
+                        <h2 className="font-display text-lg font-bold text-slate-900">Shipping address</h2>
                         <textarea
                             name="address"
                             value={form.address}
                             onChange={handleChange}
-                            rows={3}
-                            placeholder="Shipping address: street, suburb, city, postal code"
+                            rows={2}
+                            placeholder="Street address"
                             className="input-field mt-4"
                             required
                         />
+                        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                            <input name="city" value={form.city} onChange={handleChange} placeholder="City" className="input-field" />
+                            <input name="province" value={form.province} onChange={handleChange} placeholder="Province" className="input-field" />
+                            <input name="zipcode" value={form.zipcode} onChange={handleChange} placeholder="Postal code" className="input-field" />
+                        </div>
+                    </div>
+
+                    <div className="card p-6">
+                        <h2 className="font-display text-lg font-bold text-slate-900">Payment method</h2>
+                        <select
+                            name="paymentMethod"
+                            value={form.paymentMethod}
+                            onChange={handleChange}
+                            className="input-field mt-4"
+                        >
+                            <option value="Cash on Delivery">Cash on Delivery</option>
+                            <option value="EFT / Bank Transfer">EFT / Bank Transfer</option>
+                            <option value="Card (simulated)">Card (simulated)</option>
+                        </select>
                     </div>
 
                     <div className="card p-6">
@@ -130,9 +193,9 @@ export default function Checkout() {
                         <ul className="mt-4 divide-y divide-slate-100">
                             {items.map(({ product, quantity }) => (
                                 <li key={product.id} className="flex justify-between py-3 text-sm">
-                  <span className="text-slate-700">
-                    {product.name} <span className="text-slate-400">× {quantity}</span>
-                  </span>
+                                    <span className="text-slate-700">
+                                        {product.name} <span className="text-slate-400">× {quantity}</span>
+                                    </span>
                                     <span className="font-medium">{formatPrice(Number(product.price) * quantity)}</span>
                                 </li>
                             ))}
@@ -160,9 +223,9 @@ export default function Checkout() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="btn-primary mt-6 w-full !py-3"
+                        className="btn-primary mt-6 w-full"
                     >
-                        {loading ? 'Placing order...' : 'Place order'}
+                        {loading ? 'Placing order…' : 'Place order'}
                     </button>
                 </div>
             </form>

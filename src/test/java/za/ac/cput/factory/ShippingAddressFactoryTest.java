@@ -20,7 +20,7 @@ public class ShippingAddressFactoryTest {
         assertEquals("123 Main Street", address.getAddressLine1());
         assertEquals("Apt 4B", address.getAddressLine2());
         assertEquals("Cape Town", address.getCity());
-        assertEquals("Western Cape", address.getState());
+        assertEquals("Western Cape", address.getProvince());
         assertEquals("8000", address.getZipcode());
         assertEquals("South Africa", address.getCountry());
     }

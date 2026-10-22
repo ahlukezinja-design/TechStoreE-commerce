@@ -22,13 +22,16 @@ public class OrderService {
     private final IOrderRepository     orderRepository;
     private final ICustomerRepository  customerRepository;
     private final IProductsRepository   productRepository;
+    private final IDeliveryRepository  deliveryRepository;
 
     public OrderService(IOrderRepository orderRepository,
                         ICustomerRepository customerRepository,
-                        IProductsRepository productRepository) {
+                        IProductsRepository productRepository,
+                        IDeliveryRepository deliveryRepository) {
         this.orderRepository    = orderRepository;
         this.customerRepository = customerRepository;
         this.productRepository  = productRepository;
+        this.deliveryRepository = deliveryRepository;
     }
 
     /** Returns all orders. */
@@ -96,13 +99,39 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
-    /** Updates the status of an order. */
+    /** Updates the status of an order.
+     *  When status becomes SHIPPED or DELIVERED, a row is also saved in the deliveries table.
+     */
     public Order updateStatus(Long orderId, Order.Status newStatus) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Order not found with ID: " + orderId));
         order.setStatus(newStatus);
-        return orderRepository.save(order);
+        Order saved = orderRepository.save(order);
+
+        // SHIPPED: create/update a delivery row with tracking (not yet delivered — no deliveryDate)
+        // DELIVERED: same row, set deliveryDate so the table shows it was actually delivered
+        if (newStatus == Order.Status.SHIPPED || newStatus == Order.Status.DELIVERED) {
+            String deliveryId = "DEL-ORDER-" + orderId;
+            Delivery delivery = deliveryRepository.findById(deliveryId).orElseGet(() -> {
+                Delivery d = new Delivery();
+                d.setDeliveryId(deliveryId);
+                d.setTrackingNumber("TV-" + orderId + "-" + (System.currentTimeMillis() % 100000));
+                d.setCarrier("TechVault Courier");
+                return d;
+            });
+
+            if (newStatus == Order.Status.SHIPPED) {
+                // Left warehouse — not delivered yet
+                delivery.setDeliveryDate(null);
+            } else {
+                // DELIVERED — customer has received the package
+                delivery.setDeliveryDate(java.time.LocalDateTime.now());
+            }
+            deliveryRepository.save(delivery);
+        }
+
+        return saved;
     }
 
     /** Cancels an order and restores product stock. */

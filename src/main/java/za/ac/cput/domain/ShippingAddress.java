@@ -13,7 +13,7 @@ public class ShippingAddress {
     private String addressLine1;
     private String addressLine2;
     private String city;
-    private String state;
+    private String province;
     private String zipcode;
     private String country;
 
@@ -21,12 +21,12 @@ public class ShippingAddress {
     }
 
     public ShippingAddress(String addressLine1, String addressLine2,
-                           String city, String state,
+                           String city, String province,
                            String zipcode, String country) {
         this.addressLine1 = addressLine1;
         this.addressLine2 = addressLine2;
         this.city = city;
-        this.state = state;
+        this.province = province;
         this.zipcode = zipcode;
         this.country = country;
     }
@@ -42,8 +42,8 @@ public class ShippingAddress {
     public String getCity() { return city; }
     public void setCity(String city) { this.city = city; }
 
-    public String getState() { return state; }
-    public void setState(String state) { this.state = state; }
+    public String getProvince() { return province; }
+    public void setProvince(String province) { this.province = province; }
 
     public String getZipcode() { return zipcode; }
     public void setZipcode(String zipcode) { this.zipcode = zipcode; }

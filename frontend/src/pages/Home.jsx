@@ -105,8 +105,7 @@ export default function Home() {
                         <LoadingSpinner label="Loading products..." />
                     ) : featured.length === 0 ? (
                         <div className="rounded-2xl border border-dashed border-slate-200 py-16 text-center">
-                            <p className="text-slate-500">No products yet. Start the Spring Boot backend to see data.</p>
-                            <p className="mt-2 text-xs text-slate-400">API: http://localhost:8080/api/products</p>
+                            <p className="text-slate-500">No products available right now. Please check back soon.</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">

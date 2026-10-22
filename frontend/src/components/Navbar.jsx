@@ -1,12 +1,38 @@
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useState, useEffect } from 'react';
+
+const ADMIN_KEY = 'techvault_admin';
+
+function readIsAdmin() {
+    try {
+        return sessionStorage.getItem(ADMIN_KEY) === 'yes';
+    } catch {
+        return false;
+    }
+}
 
 export default function Navbar() {
     const { totalItems } = useCart();
+    const { user, logout, isAuthenticated } = useAuth();
     const [search, setSearch] = useState('');
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(readIsAdmin);
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Keep admin flag in sync (login/logout on /admin, or navigation)
+    useEffect(() => {
+        const sync = () => setIsAdmin(readIsAdmin());
+        sync();
+        window.addEventListener('techvault-admin-change', sync);
+        window.addEventListener('storage', sync);
+        return () => {
+            window.removeEventListener('techvault-admin-change', sync);
+            window.removeEventListener('storage', sync);
+        };
+    }, [location.pathname]);
 
     const handleSearch = (e) => {
         e.preventDefault();
@@ -14,6 +40,14 @@ export default function Navbar() {
             navigate(`/products?search=${encodeURIComponent(search.trim())}`);
             setMobileOpen(false);
         }
+    };
+
+    const handleAdminSignOut = () => {
+        sessionStorage.removeItem(ADMIN_KEY);
+        setIsAdmin(false);
+        window.dispatchEvent(new Event('techvault-admin-change'));
+        navigate('/admin');
+        setMobileOpen(false);
     };
 
     const linkClass = ({ isActive }) =>
@@ -24,7 +58,6 @@ export default function Navbar() {
     return (
         <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
             <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
-                {/* Logo */}
                 <Link to="/" className="flex shrink-0 items-center gap-2">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 shadow-glow">
                         <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
@@ -32,11 +65,10 @@ export default function Navbar() {
                         </svg>
                     </div>
                     <span className="font-display text-xl font-bold tracking-tight text-slate-900">
-            Tech<span className="text-brand-600">Vault</span>
-          </span>
+                        Tech<span className="text-brand-600">Vault</span>
+                    </span>
                 </Link>
 
-                {/* Search – desktop */}
                 <form onSubmit={handleSearch} className="mx-4 hidden flex-1 max-w-xl md:flex">
                     <div className="relative w-full">
                         <input
@@ -57,14 +89,37 @@ export default function Navbar() {
                     </div>
                 </form>
 
-                {/* Nav links */}
                 <nav className="ml-auto hidden items-center gap-6 md:flex">
                     <NavLink to="/" className={linkClass} end>Home</NavLink>
                     <NavLink to="/products" className={linkClass}>Shop</NavLink>
                     <NavLink to="/orders" className={linkClass}>Orders</NavLink>
+
+                    {/* Admin session: show Admin, not the customer name */}
+                    {isAdmin ? (
+                        <>
+                            <NavLink to="/admin" className={linkClass}>Admin</NavLink>
+                            <button
+                                type="button"
+                                onClick={handleAdminSignOut}
+                                className="text-sm font-medium text-slate-600 hover:text-brand-600"
+                            >
+                                Admin · Sign out
+                            </button>
+                        </>
+                    ) : isAuthenticated ? (
+                        <button
+                            type="button"
+                            onClick={() => logout()}
+                            className="text-sm font-medium text-slate-600 hover:text-brand-600"
+                            title={user?.email || 'Account'}
+                        >
+                            {user?.firstName || 'Account'} · Logout
+                        </button>
+                    ) : (
+                        <NavLink to="/login" className={linkClass}>Login</NavLink>
+                    )}
                 </nav>
 
-                {/* Actions */}
                 <div className="flex items-center gap-2">
                     <Link
                         to="/cart"
@@ -75,12 +130,11 @@ export default function Navbar() {
                         </svg>
                         {totalItems > 0 && (
                             <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-accent-500 px-1 text-[10px] font-bold text-white shadow">
-                {totalItems > 99 ? '99+' : totalItems}
-              </span>
+                                {totalItems > 99 ? '99+' : totalItems}
+                            </span>
                         )}
                     </Link>
 
-                    {/* Mobile menu toggle */}
                     <button
                         onClick={() => setMobileOpen(!mobileOpen)}
                         className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 md:hidden"
@@ -96,7 +150,6 @@ export default function Navbar() {
                 </div>
             </div>
 
-            {/* Mobile panel */}
             {mobileOpen && (
                 <div className="border-t border-slate-100 bg-white px-4 py-4 md:hidden animate-slide-up">
                     <form onSubmit={handleSearch} className="mb-4">
@@ -112,6 +165,24 @@ export default function Navbar() {
                         <NavLink to="/" onClick={() => setMobileOpen(false)} className={linkClass} end>Home</NavLink>
                         <NavLink to="/products" onClick={() => setMobileOpen(false)} className={linkClass}>Shop</NavLink>
                         <NavLink to="/orders" onClick={() => setMobileOpen(false)} className={linkClass}>Orders</NavLink>
+                        {isAdmin ? (
+                            <>
+                                <NavLink to="/admin" onClick={() => setMobileOpen(false)} className={linkClass}>Admin</NavLink>
+                                <button type="button" onClick={handleAdminSignOut} className="text-left text-sm font-medium text-slate-600">
+                                    Admin · Sign out
+                                </button>
+                            </>
+                        ) : isAuthenticated ? (
+                            <button
+                                type="button"
+                                onClick={() => { logout(); setMobileOpen(false); }}
+                                className="text-left text-sm font-medium text-slate-600"
+                            >
+                                {user?.firstName || 'Account'} · Logout
+                            </button>
+                        ) : (
+                            <NavLink to="/login" onClick={() => setMobileOpen(false)} className={linkClass}>Login</NavLink>
+                        )}
                     </div>
                 </div>
             )}
